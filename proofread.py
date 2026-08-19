@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import shutil
 import subprocess
 import sys
 
@@ -36,6 +37,9 @@ def main():
     if not language:
         sys.exit("Choose a supported target language")
 
+    if not shutil.which("claude"):
+        sys.exit("CLAUDE_NOT_INSTALLED")
+
     result = subprocess.run(
         [
             "claude",
@@ -53,6 +57,14 @@ def main():
     )
 
     if result.returncode:
+        auth = subprocess.run(
+            ["claude", "auth", "status"], text=True, capture_output=True
+        )
+        try:
+            if json.loads(auth.stdout).get("loggedIn") is False:
+                sys.exit("CLAUDE_NOT_AUTHENTICATED")
+        except (json.JSONDecodeError, AttributeError):
+            pass
         sys.stderr.write(result.stderr.strip() or "Claude failed")
         return result.returncode
 

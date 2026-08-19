@@ -23,6 +23,7 @@ Panel {
   ]
   property string targetLanguage: defaultLanguage()
   property string error: ""
+  property string errorAction: ""
   property bool copied: false
 
   implicitWidth: button.implicitWidth
@@ -38,6 +39,7 @@ Panel {
   function improve() {
     if (editor.text.trim() === "" || transform.running) return
     error = ""
+    errorAction = ""
     copied = false
     transform.output = ""
     transform.errorOutput = ""
@@ -46,6 +48,13 @@ Panel {
     transform.resultCode = -1
     transform.payload = JSON.stringify({ text: editor.text, language: targetLanguage })
     transform.running = true
+  }
+
+  function recover() {
+    if (errorAction === "install")
+      Quickshell.execDetached(["xdg-terminal-exec", "bash", "-lc", "omarchy-mise-install claude && claude auth login"])
+    else if (errorAction === "login")
+      Quickshell.execDetached(["xdg-terminal-exec", "claude", "auth", "login"])
   }
 
   onOpenedChanged: if (opened) Qt.callLater(function() { editor.forceActiveFocus() })
@@ -82,7 +91,16 @@ Panel {
           editor.selectAll()
         })
       } else {
-        root.error = errorOutput.trim() || "Could not improve the text"
+        var failure = errorOutput.trim()
+        if (failure.indexOf("CLAUDE_NOT_INSTALLED") !== -1) {
+          root.error = "Claude Code is not installed yet. Install it and sign in, then try again."
+          root.errorAction = "install"
+        } else if (failure.indexOf("CLAUDE_NOT_AUTHENTICATED") !== -1) {
+          root.error = "Claude Code needs you to sign in before it can improve text."
+          root.errorAction = "login"
+        } else {
+          root.error = failure || "Could not improve the text"
+        }
       }
     }
 
@@ -211,14 +229,29 @@ Panel {
           onChanged: function(value) { root.targetLanguage = value }
         }
 
-        Text {
+        Column {
           visible: root.error !== ""
           width: parent.width
-          text: root.error
-          color: Color.urgent
-          wrapMode: Text.WordWrap
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
+          spacing: Style.space(8)
+
+          Text {
+            width: parent.width
+            text: root.error
+            color: Color.urgent
+            wrapMode: Text.WordWrap
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+          }
+
+          Button {
+            visible: root.errorAction !== ""
+            text: root.errorAction === "install" ? "Install and sign in" : "Sign in to Claude"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            focusable: true
+            bordered: true
+            onClicked: root.recover()
+          }
         }
 
         Row {
