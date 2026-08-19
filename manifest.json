@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "mttmng.proofreader",
+  "name": "Proofreader",
+  "version": "0.1.0",
+  "author": "Matteo Mangoni",
+  "description": "Proofread or translate short messages",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Proofreader",
+    "description": "Proofread or translate short messages",
+    "category": "Productivity",
+    "defaultSection": "right",
+    "allowMultiple": false
+  }
+}
